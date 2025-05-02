@@ -2,28 +2,29 @@ use ndarray::{Array1, Array2};
 use linfa::prelude::*;
 use linfa_trees::DecisionTree;
 
-pub struct Student {
+
+#[derive(Clone, Debug)]
+    pub struct Student {
     pub features: Vec<f64>,
     pub label: f64,
 }
 
-pub fn run_tree(feature_names: Vec<String>, v: Vec<Student>) {
-    //let (feature_names, v) = read_csv("college_data.csv"); //  tuple, (feature_names, Vec<Student>)
-    let mut flat_values: Vec<f64> = Vec::new();
-    let mut status_vec: Vec<f64> = Vec::new();
+pub fn build_tree(feature_names: Vec<String>, v: Vec<Student>) -> (DecisionTree<f64, usize>, DatasetBase<Array2<f64>, Array1<usize>>, DatasetBase<Array2<f64>, Array1<usize>>) {
+    let mut flat_values: Vec<f64> = Vec::new();     // Stores all feature values 
+    let mut status_vec: Vec<usize> = Vec::new();      // Stores all class labels
 
     for student in &v {
         for feature in &student.features {
             flat_values.push(*feature);
         }
-        status_vec.push(student.label);
+        status_vec.push(student.label as usize);
       }
+
     let array = Array2::from_shape_vec((v.len(), feature_names.len()), flat_values).expect("Error creating ndarray");
   
-    let status: Array1<usize> = Array1::from_vec(status_vec.iter().map(|x| *x as usize).collect());
-  
-    let dataset = Dataset::new(array, status).with_feature_names(feature_names);
+    let status: Array1<usize> = Array1::from_vec(status_vec);
 
+    let dataset = Dataset::new(array, status).with_feature_names(feature_names);
 
     let (train, test) = dataset.split_with_ratio(0.8); // 80% train, 20% test
 
@@ -31,26 +32,42 @@ pub fn run_tree(feature_names: Vec<String>, v: Vec<Student>) {
         .max_depth(Some(6))
         .fit(&train)
         .unwrap();
-    
-    let accuracy = decision_tree
+
+    (decision_tree, train, test)
+}
+
+pub fn tree_prediction(decision_tree: DecisionTree<f64, usize>, features: Vec<f64>) -> usize {
+    let input = Array2::from_shape_vec((1, features.len()), features)
+        .expect("Failed to reshape features into array");
+    let prediction = decision_tree.predict(&input);
+    println!("{:?}", prediction[0]);
+    prediction[0]   
+}
+
+pub fn train_test_tree(decision_tree: DecisionTree<f64, usize>, train: DatasetBase<Array2<f64>, Array1<usize>>, test: DatasetBase<Array2<f64>, Array1<usize>>) {
+
+    let train_accuracy = decision_tree
+    .predict(&train)
+    .confusion_matrix(&train)
+    .unwrap()
+    .accuracy();
+
+    let test_accuracy = decision_tree
         .predict(&test)
         .confusion_matrix(&test)
         .unwrap()
         .accuracy();
     
-    println!("Test accuracy: {:.2}%", accuracy * 100.0);
+    println!("Train accuracy: {:.2}%", train_accuracy * 100.0);
+    println!("Test accuracy: {:.2}%", test_accuracy * 100.0);
 
+    let predictions = decision_tree.predict(&test);
+let actual = test.targets();
 
-
-   // let decision_tree = DecisionTree::params()
-     //     .max_depth(Some(6))
-       //   .fit(&dataset)
-       //   .unwrap();
-  
-    //let accuracy = decision_tree.predict(&dataset).confusion_matrix(&dataset).unwrap().accuracy();
-      
-   // println!("The accuracy is: {:?}", accuracy);
-  
-   
+println!("First 10 Predictions vs Actual Labels:");
+for i in 0..10 {
+    let pred = predictions[i];
+    let true_label = actual[i];
+    println!("Sample {}: Predicted = {}, Actual = {}", i + 1, pred, true_label);
     }
-  
+}

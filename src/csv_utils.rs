@@ -1,28 +1,28 @@
 use crate::tree::Student;
+use csv::ReaderBuilder;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
 
 pub fn read_csv(path: &str) -> (Vec<String>, Vec<Student>) {
+    let mut reader = ReaderBuilder::new()
+        .has_headers(true)
+        .delimiter(b';')
+        .from_reader(File::open(path).expect("Could not open file"));
+
+    let headers = reader
+        .headers()
+        .expect("Error reading headers")
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
     let mut vec_of_students = Vec::new();
-    let mut feature_names: Vec<String> = Vec::new();
+    let feature_names = headers[..headers.len() - 1].to_vec();
 
-    let file = File::open(path).expect("Could not open file");
-    let buf_reader = BufReader::new(file).lines(); //WHY NOT USE READERBUILDER HERE? HASHEADERS, PATH?
+    for result in reader.records() {
+        let record = result.expect("error reading record");
 
-    let mut first_row = true;
-
-    for row in buf_reader.into_iter() {
-        let row_str = row.expect("Error reading");
-
-        if first_row {
-            let all_features: Vec<String> = row_str.split(";").map(|s| s.to_string()).collect();
-            feature_names = all_features[..all_features.len() - 1].to_vec();
-            first_row = false; // Move onto other rows
-            continue; // Treat them differently
-        }
-
-        let full_row: Vec<f64> = row_str
-            .split(";")
+        let full_row: Vec<f64> = record
+            .iter()
             .map(|s| {
                 match s {
                     "Dropout" => 1.0,
@@ -35,7 +35,7 @@ pub fn read_csv(path: &str) -> (Vec<String>, Vec<Student>) {
 
         let label = full_row[full_row.len() - 1];
 
-        let features = full_row[0..full_row.len() - 1].to_vec();
+        let features = full_row[..full_row.len() - 1].to_vec();
 
         let student = Student { features, label };
         vec_of_students.push(student);

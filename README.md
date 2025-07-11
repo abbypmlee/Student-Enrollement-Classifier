@@ -1,0 +1,1 @@
+##Decision tree classifier written 100% in Rust to classify the enrollment status of college students based on 36 numerical and categorical features; csv parsing, decision tree logic, performance metrics, and testing split into four modules.

@@ -1,1 +1,3 @@
-Decision tree classifier written 100% in Rust to classify the enrollment status of college students based on 36 numerical and categorical features; csv parsing, decision tree logic, performance metrics, and testing split into four modules. 71% test accuracy observed.
+**71 % test-accuracy decision-tree classifier built entirely in Rust.**  
+• Trained on 36 numerical / categorical features to predict college-student enrollment status.  
+• Implemented CSV ingestion (`csv` crate), model logic (`linfa-trees`), performance metrics, and unit tests—each in its own module for clean separation of concerns.
